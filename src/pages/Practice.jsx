@@ -4,11 +4,12 @@ import { useLocation, useNavigate } from 'react-router-dom'
 export default function Practice() {
   const { state } = useLocation()
   const navigate = useNavigate()
-
+  
   const [recording, setRecording] = useState(false)
   const [elapsed, setElapsed] = useState(0)
   const [loading, setLoading] = useState(false)
   const [liveText, setLiveText] = useState('')
+  const [videoMode, setVideoMode] = useState(false)
 
   const mediaRecorderRef = useRef(null)
   const chunksRef = useRef([])
@@ -119,6 +120,28 @@ export default function Practice() {
           {recording && (
             <div className="text-red-400 font-mono text-2xl animate-pulse">
               ● {formatTime(elapsed)}
+            </div>
+          )}
+
+          {/* Audio / Video toggle */}
+          {!recording && (
+            <div className="flex items-center bg-gray-900 rounded-full p-1">
+              <button
+                onClick={() => setVideoMode(false)}
+                className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
+                  !videoMode ? 'bg-white text-black' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                🎙️ Audio Only
+              </button>
+              <button
+                onClick={() => setVideoMode(true)}
+                className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
+                  videoMode ? 'bg-white text-black' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                🎥 Audio + Video
+              </button>
             </div>
           )}
 
