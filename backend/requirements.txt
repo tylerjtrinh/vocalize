@@ -1,11 +1,8 @@
 fastapi
-uvicorn[standard]
+uvicorn
 python-multipart
 python-dotenv
 pydantic
 google-genai
 elevenlabs
 twelvelabs
-httpx
-python-docx
-PyPDF2
