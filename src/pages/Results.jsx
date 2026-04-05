@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import ScoreBar from '../components/ScoreBar'
 
@@ -15,6 +16,13 @@ export default function Results() {
   const analysis = state?.analysis
   const feedback = state?.feedback
 
+  const [audioLoading, setAudioLoading] = useState(false)
+  const [audioPlaying, setAudioPlaying] = useState(false)
+  const [audioEl, setAudioEl] = useState(null)
+
+  //For coach audio feedback
+  const [showTranscript, setShowTranscript] = useState(false)
+
   if (!analysis) return (
     <div className="bg-black min-h-screen flex items-center justify-center">
       <p className="text-white">No results found.</p>
@@ -27,6 +35,42 @@ export default function Results() {
   const pauses = voice.pauses || {}
   const overallCategory = feedback ? getCategory(feedback.overall_score) : null
 
+  const handlePlayFeedback = async () => {
+    if (!feedback?.spoken_feedback) return
+
+    // If already playing, stop it
+    if (audioPlaying && audioEl) {
+      audioEl.pause()
+      audioEl.currentTime = 0
+      setAudioPlaying(false)
+      return
+    }
+
+    try {
+      setAudioLoading(true)
+      const res = await fetch('/api/speak/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: feedback.spoken_feedback }),
+      })
+
+      if (!res.ok) throw new Error('Failed to generate audio')
+
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const audio = new Audio(url)
+      setAudioEl(audio)
+      setAudioLoading(false)
+      setAudioPlaying(true)
+
+      audio.play()
+      audio.onended = () => setAudioPlaying(false)
+    } catch (e) {
+      setAudioLoading(false)
+      alert('Failed to play feedback: ' + e.message)
+    }
+  }
+
   return (
     <div className="bg-black min-h-screen flex flex-col items-center p-8">
       <div className="w-full max-w-3xl">
@@ -34,12 +78,51 @@ export default function Results() {
 
         {/* Overall score */}
         {feedback && (
-          <div className="text-center mb-8">
+          <div className="text-center mb-6">
             <div className="text-white text-8xl font-bold">{feedback.overall_score}</div>
             <div className={`text-2xl font-semibold mt-1 ${overallCategory.color}`}>
               {overallCategory.label}
             </div>
             <div className="text-gray-500 text-sm mt-1">Overall Score</div>
+          </div>
+        )}
+
+        {/* Play feedback button */}
+        {feedback?.spoken_feedback && (
+          <div className="flex flex-col items-center mb-8 gap-3">
+            <button
+              onClick={handlePlayFeedback}
+              disabled={audioLoading}
+              className={`flex items-center gap-3 px-6 py-3 rounded-full font-semibold text-sm transition-all ${
+                audioPlaying
+                  ? 'bg-red-600 hover:bg-red-700 text-white'
+                  : 'bg-white hover:bg-gray-200 text-black'
+              } disabled:opacity-50`}
+            >
+              {audioLoading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                  Loading audio...
+                </>
+              ) : audioPlaying ? (
+                <>⏹ Stop Feedback</>
+              ) : (
+                <>▶ Play Coach Feedback</>
+              )}
+            </button>
+
+            {/* Dropdown transcript */}
+            <button
+              onClick={() => setShowTranscript(t => !t)}
+              className="text-gray-500 text-xs hover:text-gray-300 transition-all flex items-center gap-1"
+            >
+              {showTranscript ? '▲ Hide transcript' : '▼ Show Feedback Transcript'}
+            </button>
+            {showTranscript && (
+              <div className="w-full border border-gray-700 rounded-xl p-4">
+                <p className="text-gray-300 text-sm leading-relaxed">{feedback.spoken_feedback}</p>
+              </div>
+            )}
           </div>
         )}
 

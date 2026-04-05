@@ -45,6 +45,7 @@ async def get_feedback(data: AnalysisData):
         Respond in this EXACT JSON format with no extra text:
         {{
             "overall_score": <number 1-100>,
+            "spoken_feedback": "<a warm, personal, conversational coaching message. Start with 'Hey,' and talk directly to the speaker. DO NOT mention any numbers or scores. Use categorical language only (e.g. 'your pacing was a bit fast', 'your clarity was excellent', 'your tone came across as flat'). Cover what they did well with reasons why it worked. Only mention improvements if there are genuine ones — if they did really well, just say so and give specific praise. If there are real improvements, explain why they matter. Do not force or invent feedback. Sound like a real coach having a conversation, not reading a report. 3-7 sentences depending on how much genuine feedback there is.>",
             "scores": {{
                 "pacing": <number 1-100>,
                 "clarity": <number 1-100>,
