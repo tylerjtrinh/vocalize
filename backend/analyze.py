@@ -30,25 +30,38 @@ async def analyze_audio(audio: UploadFile = File(...)):
                 "right": <count>
             },
             "voice_analysis": {
-                "tone": "<e.g. confident, nervous, monotone, energetic, calm, authoritative>",
-                "energy": "<low, medium, high>",
-                "clarity": "<poor, fair, good, excellent>",
-                "pace_description": "<too fast, slightly fast, good, slightly slow, too slow>",
+                "tone": {
+                    "value": "<e.g. confident, nervous, monotone, energetic, calm, authoritative>",
+                    "detail": "<one specific observation, max 12 words>"
+                },
+                "energy": {
+                    "value": "<low, medium, high>",
+                    "detail": "<one specific observation, max 12 words>"
+                },
+                "clarity": {
+                    "value": "<poor, fair, good, excellent>",
+                    "detail": "<one specific observation, max 12 words>"
+                },
+                "pace_description": {
+                    "value": "<too fast, slightly fast, good, slightly slow, too slow>",
+                    "detail": "<one specific observation, max 12 words>"
+                },
+                "expressiveness": {
+                    "value": "<low, medium, high>",
+                    "detail": "<one specific observation, max 12 words>"
+                },
                 "pauses": {
                     "usage": "<none, too few, appropriate, too many>",
-                    "effectiveness": "<e.g. pauses are well placed for emphasis, pauses feel awkward, no pauses used>",
+                    "effectiveness": "<one specific observation about pause usage, max 12 words>",
                     "count": <estimated number of notable pauses>
-                },
-                "dynamics": {
-                    "pitch_variation": "<monotone, slight variation, good variation, very dynamic>",
-                    "volume_variation": "<flat, slight variation, good variation, very dynamic>",
-                    "expressiveness": "<low, medium, high>"
                 },
                 "emotion": {
                     "primary": "<e.g. nervous, confident, excited, bored, passionate, anxious, calm>",
                     "secondary": "<e.g. hopeful, uncertain, enthusiastic>",
+                    "emotion_detail": "<one observation covering both emotions together, max 12 words>",
                     "authenticity": "<forced, neutral, genuine>",
-                    "emotional_range": "<flat, limited, moderate, wide>"
+                    "emotional_range": "<flat, limited, moderate, wide>",
+                    "emotional_range_detail": "<one specific observation, max 12 words>"
                 },
                 "observations": "<3-4 sentences about how the person sounds, covering tone, emotion, and delivery>"
             }
@@ -78,6 +91,4 @@ async def analyze_audio(audio: UploadFile = File(...)):
         }
 
     except Exception as e:
-        import traceback
-        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))

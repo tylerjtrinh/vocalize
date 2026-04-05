@@ -11,18 +11,25 @@ const getCategory = (score) => {
   return { label: 'Poor', color: 'text-red-400' }
 }
 
+const priorityColor = {
+  high: 'text-red-400 border-red-400/30 bg-red-400/5',
+  medium: 'text-yellow-400 border-yellow-400/30 bg-yellow-400/5',
+  low: 'text-blue-400 border-blue-400/30 bg-blue-400/5',
+}
+
 export default function Results() {
   const { state } = useLocation()
   const navigate = useNavigate()
   const analysis = state?.analysis
   const feedback = state?.feedback
+  const videoAnalysis = state?.videoAnalysis
+  const mode = state?.mode
 
   const [audioLoading, setAudioLoading] = useState(false)
   const [audioPlaying, setAudioPlaying] = useState(false)
   const [audioEl, setAudioEl] = useState(null)
-
-  //For coach audio feedback
   const [showTranscript, setShowTranscript] = useState(false)
+  const [breakdownOpen, setBreakdownOpen] = useState(false)
 
   if (!analysis) return (
     <div className="bg-black min-h-screen flex items-center justify-center">
@@ -32,21 +39,22 @@ export default function Results() {
 
   const voice = analysis.voice_analysis || {}
   const emotion = voice.emotion || {}
-  const dynamics = voice.dynamics || {}
   const pauses = voice.pauses || {}
   const overallCategory = feedback ? getCategory(feedback.overall_score) : null
+  const isVideoMode = mode === 'video' && videoAnalysis
+
+  // Helper to get score value from new {score, detail} format
+  const s = (key) => feedback?.scores?.[key]?.score ?? feedback?.scores?.[key]
+  const d = (key) => feedback?.scores?.[key]?.detail
 
   const handlePlayFeedback = async () => {
     if (!feedback?.spoken_feedback) return
-
-    // If already playing, stop it
     if (audioPlaying && audioEl) {
       audioEl.pause()
       audioEl.currentTime = 0
       setAudioPlaying(false)
       return
     }
-
     try {
       setAudioLoading(true)
       const res = await fetch('/api/speak/', {
@@ -54,16 +62,13 @@ export default function Results() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: feedback.spoken_feedback }),
       })
-
       if (!res.ok) throw new Error('Failed to generate audio')
-
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const audio = new Audio(url)
       setAudioEl(audio)
       setAudioLoading(false)
       setAudioPlaying(true)
-
       audio.play()
       audio.onended = () => setAudioPlaying(false)
     } catch (e) {
@@ -71,6 +76,31 @@ export default function Results() {
       alert('Failed to play feedback: ' + e.message)
     }
   }
+
+  const voiceScores = [
+    { label: 'Pacing',     score: s('pacing') },
+    { label: 'Clarity',    score: s('clarity') },
+    { label: 'Confidence', score: s('confidence') },
+    { label: 'Structure',  score: s('structure') },
+    { label: 'Emotion',    score: s('emotion') },
+    { label: 'Dynamics',   score: s('dynamics') },
+  ]
+
+  const videoScores = isVideoMode ? [
+    { label: 'Eye Contact',           score: videoAnalysis.eye_contact?.score },
+    { label: 'Posture',               score: videoAnalysis.posture?.score },
+    { label: 'Presence',              score: videoAnalysis.presence?.score },
+    { label: 'Facial Expressiveness', score: videoAnalysis.facial_expressiveness?.score },
+    { label: 'Movement Quality',      score: videoAnalysis.movement_quality?.score },
+  ] : []
+
+  const DescField = ({ label, value, detail }) => (
+    <div>
+      <p className="text-gray-500 text-xs mb-1">{label}</p>
+      <p className="text-white capitalize text-sm font-medium">{value}</p>
+      {detail && <p className="text-gray-400 text-xs mt-0.5">{detail}</p>}
+    </div>
+  )
 
   return (
     <div className="bg-black min-h-screen">
@@ -113,8 +143,6 @@ export default function Results() {
                   <>▶ Play Coach Feedback</>
                 )}
               </button>
-
-              {/* Dropdown transcript */}
               <button
                 onClick={() => setShowTranscript(t => !t)}
                 className="text-gray-500 text-xs hover:text-gray-300 transition-all flex items-center gap-1"
@@ -145,16 +173,99 @@ export default function Results() {
             </div>
           </div>
 
-          {/* Score breakdown */}
+          {/* Score breakdown — dropdown */}
           {feedback && (
-            <div className="border border-gray-700 rounded-xl p-6 mb-6 flex flex-col gap-4">
-              <h2 className="text-white text-xl font-semibold mb-2">Breakdown</h2>
-              <ScoreBar label="Pacing"     score={feedback.scores?.pacing} />
-              <ScoreBar label="Clarity"    score={feedback.scores?.clarity} />
-              <ScoreBar label="Confidence" score={feedback.scores?.confidence} />
-              <ScoreBar label="Structure"  score={feedback.scores?.structure} />
-              <ScoreBar label="Emotion"    score={feedback.scores?.emotion} />
-              <ScoreBar label="Dynamics"   score={feedback.scores?.dynamics} />
+            <div className="border border-gray-700 rounded-xl mb-6 overflow-hidden">
+              <button
+                onClick={() => setBreakdownOpen(o => !o)}
+                className="w-full flex items-center justify-between p-6 text-left hover:bg-gray-900 transition-all"
+              >
+                <h2 className="text-white text-xl font-semibold">Breakdown</h2>
+                <span className="text-gray-400 text-lg">{breakdownOpen ? '▲' : '▼'}</span>
+              </button>
+              {breakdownOpen && (
+                <div className="px-6 pb-6">
+                  {isVideoMode ? (
+                    <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                      <div className="flex flex-col gap-4">
+                        <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mb-1">🎙️ Voice</p>
+                        {voiceScores.map(({ label, score }) => (
+                          <ScoreBar key={label} label={label} score={score} />
+                        ))}
+                      </div>
+                      <div className="flex flex-col gap-4">
+                        <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mb-1">🎥 Video</p>
+                        {videoScores.map(({ label, score }) => (
+                          <ScoreBar key={label} label={label} score={score} />
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-4">
+                      {voiceScores.map(({ label, score }) => (
+                        <ScoreBar key={label} label={label} score={score} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Video Analysis */}
+          {isVideoMode && (
+            <div className="border border-gray-700 rounded-xl p-6 mb-6">
+              <h2 className="text-white text-xl font-semibold mb-4">🎥 Video Analysis</h2>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                {[
+                  { label: 'Eye Contact', key: 'eye_contact' },
+                  { label: 'Posture', key: 'posture' },
+                  { label: 'Presence', key: 'presence' },
+                  { label: 'Facial Expressiveness', key: 'facial_expressiveness' },
+                  { label: 'Movement Quality', key: 'movement_quality' },
+                ].map(({ label, key }) => (
+                  <div key={key}>
+                    <p className="text-gray-500 text-xs mb-1">{label}</p>
+                    <p className={`text-sm font-medium ${getCategory(videoAnalysis[key]?.score).color}`}>
+                      {getCategory(videoAnalysis[key]?.score).label}
+                    </p>
+                    <p className="text-gray-400 text-xs mt-0.5">{videoAnalysis[key]?.detail}</p>
+                  </div>
+                ))}
+              </div>
+              {videoAnalysis.notable_behaviors?.length > 0 && (
+                <div className="pt-4 border-t border-gray-700 mb-4">
+                  <p className="text-gray-500 text-xs mb-2">Notable Behaviors</p>
+                  <ul className="text-gray-300 text-sm space-y-1">
+                    {videoAnalysis.notable_behaviors.map((b, i) => <li key={i}>• {b}</li>)}
+                  </ul>
+                </div>
+              )}
+              {videoAnalysis.observations && (
+                <div className="pt-4 border-t border-gray-700 mb-4">
+                  <p className="text-gray-500 text-xs mb-2">Observations</p>
+                  <p className="text-gray-300 leading-relaxed text-sm">{videoAnalysis.observations}</p>
+                </div>
+              )}
+              {videoAnalysis.coaching_tips?.length > 0 && (
+                <div className="pt-4 border-t border-gray-700">
+                  <p className="text-gray-500 text-xs mb-3">Coaching Tips</p>
+                  <div className="flex flex-col gap-3">
+                    {videoAnalysis.coaching_tips.map((tip, i) => (
+                      <div key={i} className={`border rounded-xl p-4 ${priorityColor[tip.priority]}`}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className={`text-xs font-bold uppercase tracking-wider ${priorityColor[tip.priority].split(' ')[0]}`}>
+                            {tip.priority}
+                          </span>
+                          <span className="text-white text-sm font-semibold">{tip.title}</span>
+                        </div>
+                        <p className="text-gray-300 text-sm leading-relaxed mb-2">{tip.description}</p>
+                        <p className="text-gray-500 text-xs"><span className="text-gray-400 font-medium">Drill: </span>{tip.drill}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -162,66 +273,45 @@ export default function Results() {
           {voice.tone && (
             <div className="border border-gray-700 rounded-xl p-6 mb-6">
               <h2 className="text-white text-xl font-semibold mb-4">🎙️ Voice Analysis</h2>
+
+              {/* Color coded — breakdown scores with details */}
               <div className="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                  <p className="text-gray-500 text-xs mb-1">Tone</p>
-                  <p className="text-white capitalize">{voice.tone}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500 text-xs mb-1">Energy</p>
-                  <p className="text-white capitalize">{voice.energy}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500 text-xs mb-1">Clarity</p>
-                  <p className="text-white capitalize">{voice.clarity}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500 text-xs mb-1">Pace</p>
-                  <p className="text-white capitalize">{voice.pace_description}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500 text-xs mb-1">Primary Emotion</p>
-                  <p className="text-white capitalize">{emotion.primary}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500 text-xs mb-1">Secondary Emotion</p>
-                  <p className="text-white capitalize">{emotion.secondary}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500 text-xs mb-1">Emotional Range</p>
-                  <p className="text-white capitalize">{emotion.emotional_range}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500 text-xs mb-1">Authenticity</p>
-                  <p className="text-white capitalize">{emotion.authenticity}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500 text-xs mb-1">Pitch Variation</p>
-                  <p className="text-white capitalize">{dynamics.pitch_variation}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500 text-xs mb-1">Volume Variation</p>
-                  <p className="text-white capitalize">{dynamics.volume_variation}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500 text-xs mb-1">Expressiveness</p>
-                  <p className="text-white capitalize">{dynamics.expressiveness}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500 text-xs mb-1">Pauses</p>
-                  <p className="text-white capitalize">{pauses.usage} ({pauses.count} notable)</p>
+                {[
+                  { label: 'Pacing',     key: 'pacing' },
+                  { label: 'Clarity',    key: 'clarity' },
+                  { label: 'Confidence', key: 'confidence' },
+                  { label: 'Structure',  key: 'structure' },
+                  { label: 'Emotion',    key: 'emotion' },
+                  { label: 'Dynamics',   key: 'dynamics' },
+                ].map(({ label, key }) => {
+                  const cat = getCategory(s(key))
+                  return (
+                    <div key={key}>
+                      <p className="text-gray-500 text-xs mb-1">{label}</p>
+                      <p className={`text-sm font-medium ${cat.color}`}>{cat.label}</p>
+                      {d(key) && <p className="text-gray-400 text-xs mt-0.5">{d(key)}</p>}
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* White descriptive section */}
+              <div className="pt-4 border-t border-gray-700">
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <DescField label="Tone"           value={voice.tone?.value}           detail={voice.tone?.detail} />
+                  <DescField label="Energy"         value={voice.energy?.value}         detail={voice.energy?.detail} />
+                  <DescField label="Expressiveness" value={voice.expressiveness?.value} detail={voice.expressiveness?.detail} />
+                  <DescField label="Emotion" value={`${emotion.primary}${emotion.secondary ? ` · ${emotion.secondary}` : ''}`} detail={emotion.emotion_detail} />
+                  <DescField label="Emotional Range" value={emotion.emotional_range} detail={emotion.emotional_range_detail} />
+                  <DescField label="Pauses" value={`${pauses.usage} (${pauses.count} notable)`} detail={pauses.effectiveness} />
                 </div>
               </div>
+
+              {/* Observations */}
               <div className="pt-4 border-t border-gray-700">
                 <p className="text-gray-500 text-xs mb-2">Observations</p>
                 <p className="text-gray-300 leading-relaxed">{voice.observations}</p>
               </div>
-              {pauses.effectiveness && (
-                <div className="pt-3">
-                  <p className="text-gray-500 text-xs mb-2">Pause Effectiveness</p>
-                  <p className="text-gray-300 leading-relaxed">{pauses.effectiveness}</p>
-                </div>
-              )}
             </div>
           )}
 
