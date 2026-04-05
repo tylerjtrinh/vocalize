@@ -1,8 +1,23 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import { useAudioRecorder } from '../hooks/useAudioRecorder'
 import { useRecorder } from '../hooks/useRecorder'
+
+const AUDIO_STAGES = [
+  { label: 'Transcribing audio...', progress: 25 },
+  { label: 'Analyzing voice...', progress: 55 },
+  { label: 'Generating feedback...', progress: 80 },
+  { label: 'Almost done...', progress: 95 },
+]
+
+const VIDEO_STAGES = [
+  { label: 'Transcribing audio...', progress: 20 },
+  { label: 'Analyzing voice...', progress: 40 },
+  { label: 'Analyzing video...', progress: 65 },
+  { label: 'Generating feedback...', progress: 85 },
+  { label: 'Almost done...', progress: 95 },
+]
 
 export default function Practice() {
   const { state } = useLocation()
@@ -10,6 +25,9 @@ export default function Practice() {
 
   const [videoMode, setVideoMode] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [loadingStage, setLoadingStage] = useState(0)
+  const [progress, setProgress] = useState(0)
+  const [stages, setStages] = useState(AUDIO_STAGES)
   const [liveText, setLiveText] = useState('')
   const [showConsent, setShowConsent] = useState(false)
   const [consentGiven, setConsentGiven] = useState(false)
@@ -17,26 +35,23 @@ export default function Practice() {
   const recognitionRef = useRef(null)
   const startTimeRef = useRef(null)
   const liveVideoRef = useRef(null)
+  const loadingRef = useRef(false)
 
-  // Hooks
   const { recording, elapsed, start: startAudio, stop: stopAudio, formatTime } = useAudioRecorder()
   const { state: recorderState, duration, blob: videoBlob, stream, start: startVideo, stop: stopVideo, error: recorderError } = useRecorder()
 
   const isVideoRecording = recorderState === 'recording' || recorderState === 'paused'
 
-  // Attach live camera stream to video element
   useEffect(() => {
     if (liveVideoRef.current && stream) {
       liveVideoRef.current.srcObject = stream
     }
   }, [stream])
 
-  // When video blob is ready, process it
-  useEffect(() => {
-    if (recorderState === 'stopped' && videoBlob && loading) {
-      processVideoRecording(videoBlob)
-    }
-  }, [recorderState, videoBlob])
+  const advanceStage = (stageIndex, currentStages) => {
+    setLoadingStage(stageIndex)
+    setProgress(currentStages[stageIndex].progress)
+  }
 
   const startLiveTranscription = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
@@ -55,6 +70,78 @@ export default function Practice() {
     recognitionRef.current = recognition
   }
 
+  const processVideoRecording = useCallback(async (blob) => {
+    const currentStages = VIDEO_STAGES
+    try {
+      const durationSeconds = (Date.now() - startTimeRef.current) / 1000
+
+      const audioFormData = new FormData()
+      audioFormData.append('audio', blob, 'recording.webm')
+      const videoFormData = new FormData()
+      videoFormData.append('video', blob, 'recording.webm')
+
+      // Stage 0: Transcribing
+      const [analysisRes, videoRes] = await Promise.all([
+        fetch('/api/analyze/', { method: 'POST', body: audioFormData }),
+        fetch('/api/video/', { method: 'POST', body: videoFormData }),
+      ])
+
+      // Stage 1: Analyzing voice
+      advanceStage(1, currentStages)
+      const analysis = await analysisRes.json()
+      const wpm = Math.round(analysis.word_count / (durationSeconds / 60))
+
+      // Stage 2: Analyzing video
+      advanceStage(2, currentStages)
+      const videoAnalysis = await videoRes.json()
+
+      // Stage 3: Generating feedback
+      advanceStage(3, currentStages)
+      const coachRes = await fetch('/api/coach/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transcript: analysis.transcript,
+          wpm,
+          filler_words: analysis.filler_words,
+          word_count: analysis.word_count,
+          duration_seconds: durationSeconds,
+          voice_analysis: analysis.voice_analysis,
+          video_analysis: videoAnalysis,
+        })
+      })
+      const feedback = await coachRes.json()
+
+      // Stage 4: Almost done
+      advanceStage(4, currentStages)
+      setProgress(100)
+
+      setTimeout(() => {
+        loadingRef.current = false
+        setLoading(false)
+        navigate('/results', {
+          state: {
+            analysis: { ...analysis, wpm, duration_seconds: durationSeconds },
+            videoAnalysis,
+            feedback,
+            mode: 'video'
+          }
+        })
+      }, 400)
+    } catch (e) {
+      loadingRef.current = false
+      setLoading(false)
+      console.error(e)
+    }
+  }, [navigate])
+
+  useEffect(() => {
+  if (recorderState === 'stopped' && videoBlob && loadingRef.current) {
+    const blob = videoBlob
+    setTimeout(() => processVideoRecording(blob), 0)
+  }
+  }, [recorderState, videoBlob, processVideoRecording])
+
   // ── Audio Only ──
   const handleStartAudio = async () => {
     setLiveText('')
@@ -68,15 +155,23 @@ export default function Practice() {
     if (!result) return
 
     const { blob, durationSeconds } = result
+    const currentStages = AUDIO_STAGES
+    setStages(currentStages)
+    loadingRef.current = true
     setLoading(true)
+    setProgress(0)
+    setLoadingStage(0)
 
+    advanceStage(0, currentStages)
     const formData = new FormData()
     formData.append('audio', blob, 'recording.webm')
-
     const res = await fetch('/api/analyze/', { method: 'POST', body: formData })
     const analysis = await res.json()
     const wpm = Math.round(analysis.word_count / (durationSeconds / 60))
 
+    advanceStage(1, currentStages)
+
+    advanceStage(2, currentStages)
     const coachRes = await fetch('/api/coach/feedback', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -91,14 +186,20 @@ export default function Practice() {
     })
     const feedback = await coachRes.json()
 
-    setLoading(false)
-    navigate('/results', {
-      state: {
-        analysis: { ...analysis, wpm, duration_seconds: durationSeconds },
-        feedback,
-        mode: 'audio'
-      }
-    })
+    advanceStage(3, currentStages)
+    setProgress(100)
+
+    setTimeout(() => {
+      loadingRef.current = false
+      setLoading(false)
+      navigate('/results', {
+        state: {
+          analysis: { ...analysis, wpm, duration_seconds: durationSeconds },
+          feedback,
+          mode: 'audio'
+        }
+      })
+    }, 400)
   }
 
   // ── Video Mode ──
@@ -126,56 +227,13 @@ export default function Practice() {
   const handleStopVideo = () => {
     recognitionRef.current?.stop()
     stopVideo()
+    const currentStages = VIDEO_STAGES
+    setStages(currentStages)
+    loadingRef.current = true
     setLoading(true)
-  }
-
-  const processVideoRecording = async (blob) => {
-    try {
-      const durationSeconds = (Date.now() - startTimeRef.current) / 1000
-
-      const audioFormData = new FormData()
-      audioFormData.append('audio', blob, 'recording.webm')
-
-      const videoFormData = new FormData()
-      videoFormData.append('video', blob, 'recording.webm')
-
-      const [analysisRes, videoRes] = await Promise.all([
-        fetch('/api/analyze/', { method: 'POST', body: audioFormData }),
-        fetch('/api/video/', { method: 'POST', body: videoFormData }),
-      ])
-
-      const analysis = await analysisRes.json()
-      const videoAnalysis = await videoRes.json()
-      const wpm = Math.round(analysis.word_count / (durationSeconds / 60))
-
-      const coachRes = await fetch('/api/coach/feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          transcript: analysis.transcript,
-          wpm,
-          filler_words: analysis.filler_words,
-          word_count: analysis.word_count,
-          duration_seconds: durationSeconds,
-          voice_analysis: analysis.voice_analysis,
-          video_analysis: videoAnalysis,
-        })
-      })
-      const feedback = await coachRes.json()
-
-      setLoading(false)
-      navigate('/results', {
-        state: {
-          analysis: { ...analysis, wpm, duration_seconds: durationSeconds },
-          videoAnalysis,
-          feedback,
-          mode: 'video'
-        }
-      })
-    } catch (e) {
-      setLoading(false)
-      console.error(e)
-    }
+    setProgress(0)
+    setLoadingStage(0)
+    advanceStage(0, currentStages)
   }
 
   return (
@@ -193,16 +251,10 @@ export default function Practice() {
               immediately after analysis</strong> and is never stored or viewed by us.
             </p>
             <div className="flex gap-3">
-              <button
-                onClick={handleConsentAccept}
-                className="flex-1 bg-white text-black font-semibold py-3 rounded-xl text-sm"
-              >
+              <button onClick={handleConsentAccept} className="flex-1 bg-white text-black font-semibold py-3 rounded-xl text-sm">
                 I Understand, Continue
               </button>
-              <button
-                onClick={() => setShowConsent(false)}
-                className="flex-1 border border-gray-700 text-gray-400 font-semibold py-3 rounded-xl text-sm"
-              >
+              <button onClick={() => setShowConsent(false)} className="flex-1 border border-gray-700 text-gray-400 font-semibold py-3 rounded-xl text-sm">
                 Cancel
               </button>
             </div>
@@ -214,10 +266,32 @@ export default function Practice() {
         <h1 className="text-white text-3xl font-bold mb-8">🎙️ Free Speak</h1>
 
         {loading ? (
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin" />
-            <p className="text-gray-400">Analyzing your speech...</p>
-            <p className="text-gray-600 text-sm">This can take 20-40 seconds</p>
+          <div className="flex flex-col items-center gap-6 w-full max-w-sm">
+            <p className="text-white font-medium text-lg">{stages[loadingStage]?.label}</p>
+
+            <div className="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
+              <div
+                className="h-2 bg-white rounded-full transition-all duration-700 ease-out"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+
+            <div className="flex items-center gap-3">
+              {stages.map((stage, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                    i <= loadingStage ? 'bg-white' : 'bg-gray-700'
+                  }`} />
+                  {i < stages.length - 1 && (
+                    <div className={`w-8 h-px transition-all duration-300 ${
+                      i < loadingStage ? 'bg-white' : 'bg-gray-700'
+                    }`} />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <p className="text-gray-500 text-xs">This may take 20-40 seconds</p>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-6 w-full max-w-2xl">
@@ -248,13 +322,7 @@ export default function Practice() {
             {videoMode && (
               <div className="w-full relative rounded-2xl overflow-hidden bg-gray-900 aspect-video border border-gray-700">
                 {(isVideoRecording || recorderState === 'requesting') ? (
-                  <video
-                    ref={liveVideoRef}
-                    autoPlay
-                    muted
-                    playsInline
-                    className="w-full h-full object-cover scale-x-[-1]"
-                  />
+                  <video ref={liveVideoRef} autoPlay muted playsInline className="w-full h-full object-cover scale-x-[-1]" />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <p className="text-gray-600 text-sm">Camera preview will appear here</p>
@@ -302,9 +370,7 @@ export default function Practice() {
               {recording || isVideoRecording ? 'Click to stop' : 'Click to start recording'}
             </p>
 
-            {recorderError && (
-              <p className="text-red-400 text-sm">{recorderError}</p>
-            )}
+            {recorderError && <p className="text-red-400 text-sm">{recorderError}</p>}
 
             {/* Live transcript */}
             {(recording || isVideoRecording || liveText) && (
@@ -315,7 +381,6 @@ export default function Practice() {
                 </p>
               </div>
             )}
-
           </div>
         )}
       </div>
