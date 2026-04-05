@@ -34,4 +34,5 @@ async def text_to_speech(req: SpeakRequest):
         )
 
     except Exception as e:
+        print(f"ElevenLabs error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
