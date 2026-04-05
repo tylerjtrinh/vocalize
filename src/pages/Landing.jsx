@@ -73,7 +73,7 @@ export default function Landing() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
             {[
               { num: '01', title: 'Choose your mode', desc: 'Upload a script, generate one with AI, or jump straight into free speaking — whatever fits your goal.' },
-              { num: '02', title: 'Record your speech', desc: 'Hit record and speak naturally. SpeakIQ captures your audio and transcribes it in real time.' },
+              { num: '02', title: 'Record your speech', desc: 'Hit record and speak naturally. Vocalize captures your audio and transcribes it in real time.' },
               { num: '03', title: 'AI analyzes everything', desc: 'AI evaluates your pacing, tone, clarity, confidence, filler words, and emotional range simultaneously.' },
               { num: '04', title: 'Get personalized feedback', desc: 'Receive targeted coaching built around your performance with clear scores and actionable next steps.' },
             ].map((step) => (
@@ -113,7 +113,7 @@ export default function Landing() {
       <div className="py-16 px-7 text-center">
         <p className="text-xs font-bold tracking-widest uppercase text-gray-600 mb-7">Powered by</p>
         <div className="flex flex-wrap justify-center items-center gap-8">
-          {['Gemini', 'ElevenLabs', 'FastAPI'].map((logo) => (
+          {['Gemini', 'ElevenLabs', 'TwelveLabs', 'FastAPI'].map((logo) => (
             <span key={logo} className="text-sm font-medium text-gray-600 hover:text-gray-300 transition-all cursor-default">
               {logo}
             </span>

@@ -17,6 +17,29 @@ const priorityColor = {
   low: 'text-blue-400 border-blue-400/30 bg-blue-400/5',
 }
 
+const CoachingTips = ({ tips }) => {
+  if (!tips?.length) return null
+  return (
+    <div className="pt-4 border-t border-gray-700">
+      <p className="text-gray-500 text-xs mb-3">Coaching Tips</p>
+      <div className="flex flex-col gap-3">
+        {tips.map((tip, i) => (
+          <div key={i} className={`border rounded-xl p-4 ${priorityColor[tip.priority]}`}>
+            <div className="flex items-center gap-2 mb-2">
+              <span className={`text-xs font-bold uppercase tracking-wider ${priorityColor[tip.priority].split(' ')[0]}`}>
+                {tip.priority}
+              </span>
+              <span className="text-white text-sm font-semibold">{tip.title}</span>
+            </div>
+            <p className="text-gray-300 text-sm leading-relaxed mb-2">{tip.description}</p>
+            <p className="text-gray-500 text-xs"><span className="text-gray-400 font-medium">Drill: </span>{tip.drill}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function Results() {
   const { state } = useLocation()
   const navigate = useNavigate()
@@ -43,7 +66,6 @@ export default function Results() {
   const overallCategory = feedback ? getCategory(feedback.overall_score) : null
   const isVideoMode = mode === 'video' && videoAnalysis
 
-  // Helper to get score value from new {score, detail} format
   const s = (key) => feedback?.scores?.[key]?.score ?? feedback?.scores?.[key]
   const d = (key) => feedback?.scores?.[key]?.detail
 
@@ -247,25 +269,7 @@ export default function Results() {
                   <p className="text-gray-300 leading-relaxed text-sm">{videoAnalysis.observations}</p>
                 </div>
               )}
-              {videoAnalysis.coaching_tips?.length > 0 && (
-                <div className="pt-4 border-t border-gray-700">
-                  <p className="text-gray-500 text-xs mb-3">Coaching Tips</p>
-                  <div className="flex flex-col gap-3">
-                    {videoAnalysis.coaching_tips.map((tip, i) => (
-                      <div key={i} className={`border rounded-xl p-4 ${priorityColor[tip.priority]}`}>
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className={`text-xs font-bold uppercase tracking-wider ${priorityColor[tip.priority].split(' ')[0]}`}>
-                            {tip.priority}
-                          </span>
-                          <span className="text-white text-sm font-semibold">{tip.title}</span>
-                        </div>
-                        <p className="text-gray-300 text-sm leading-relaxed mb-2">{tip.description}</p>
-                        <p className="text-gray-500 text-xs"><span className="text-gray-400 font-medium">Drill: </span>{tip.drill}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <CoachingTips tips={videoAnalysis.coaching_tips} />
             </div>
           )}
 
@@ -301,17 +305,20 @@ export default function Results() {
                   <DescField label="Tone"           value={voice.tone?.value}           detail={voice.tone?.detail} />
                   <DescField label="Energy"         value={voice.energy?.value}         detail={voice.energy?.detail} />
                   <DescField label="Expressiveness" value={voice.expressiveness?.value} detail={voice.expressiveness?.detail} />
-                  <DescField label="Emotion" value={`${emotion.primary}${emotion.secondary ? ` · ${emotion.secondary}` : ''}`} detail={emotion.emotion_detail} />
-                  <DescField label="Emotional Range" value={emotion.emotional_range} detail={emotion.emotional_range_detail} />
-                  <DescField label="Pauses" value={`${pauses.usage} (${pauses.count} notable)`} detail={pauses.effectiveness} />
+                  <DescField label="Emotion"        value={`${emotion.primary}${emotion.secondary ? ` · ${emotion.secondary}` : ''}`} detail={emotion.emotion_detail} />
+                  <DescField label="Emotional Range" value={emotion.emotional_range}    detail={emotion.emotional_range_detail} />
+                  <DescField label="Pauses"         value={`${pauses.usage} (${pauses.count} notable)`} detail={pauses.effectiveness} />
                 </div>
               </div>
 
               {/* Observations */}
-              <div className="pt-4 border-t border-gray-700">
+              <div className="pt-4 border-t border-gray-700 mb-4">
                 <p className="text-gray-500 text-xs mb-2">Observations</p>
                 <p className="text-gray-300 leading-relaxed">{voice.observations}</p>
               </div>
+
+              {/* Voice coaching tips */}
+              <CoachingTips tips={feedback?.coaching_tips} />
             </div>
           )}
 

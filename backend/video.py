@@ -110,6 +110,15 @@ SCORING RULES — be critical and honest, use the full range:
 - 40-59: Clear issues that need work
 - 0-39: Significant problems
 
+STRICT SCORING CRITERIA:
+- Eye contact: Only score 75+ if they are consistently looking directly at the camera. Looking away frequently = below 50. Occasional glances away = 50-70.
+- Posture: Only score 75+ if they are upright and still throughout. Slouching or shifting = below 60.
+- Presence: Only score 75+ if they project clear confidence through body language. Fidgeting, hunched, or closed off = below 50.
+- Facial Expressiveness: Only score 75+ if they use varied, natural expressions that match their words. Blank or flat face = below 40. Minimal expression = 40-60.
+- Movement Quality: Only score 75+ if gestures are purposeful and enhance the message. No gestures = 40-55. Distracting or nervous movements = below 40.
+
+Be a strict judge. Most people in casual recordings will score in the 40-70 range, not 80+. Reserve 80+ for genuinely strong performers. If you observed poor eye contact or flat expressions — reflect that with scores below 55.
+
 Do NOT default to high scores. If someone is nervous, fidgeting, avoiding eye contact, slouching, or has distracting movements — reflect that accurately in the score. Be a strict but fair coach. Only include coaching_tips for genuine issues — fewer tips is better than forced ones."""
 
     result = client.analyze(video_id=video_id, prompt=prompt)

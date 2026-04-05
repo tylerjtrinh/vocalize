@@ -70,8 +70,17 @@ VIDEO ANALYSIS (from Twelve Labs):
     }},
     "strengths": ["<up to 5 genuine strengths, only include real ones>"],
     "improvements": ["<up to 5 genuine improvements, only include real ones>"],
-    "summary": "<3-4 sentence coaching summary covering content, voice, and emotion>"
+    "summary": "<3-4 sentence coaching summary covering content, voice, and emotion>",
+    "coaching_tips": [
+        {{
+            "priority": "<high|medium|low>",
+            "title": "<short actionable title, max 8 words>",
+            "description": "<2-3 sentences explaining the issue and why it matters>",
+            "drill": "<specific 1-2 sentence practice exercise the speaker can do today>"
+        }}
+    ]
 }}
+Only include coaching_tips for genuine issues. Fewer tips is better than forced ones.
         """
 
         response = client.models.generate_content(
