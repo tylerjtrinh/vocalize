@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom'
+import ScoreBar from '../components/ScoreBar'
 
 export default function Results() {
   const { state } = useLocation()
@@ -9,21 +10,6 @@ export default function Results() {
   if (!analysis) return (
     <div className="bg-black min-h-screen flex items-center justify-center">
       <p className="text-white">No results found.</p>
-    </div>
-  )
-
-  const ScoreBar = ({ label, score }) => (
-    <div className="flex flex-col gap-1">
-      <div className="flex justify-between text-sm">
-        <span className="text-gray-400">{label}</span>
-        <span className="text-white font-semibold">{score}/100</span>
-      </div>
-      <div className="h-2 bg-gray-800 rounded-full">
-        <div
-          className="h-2 bg-white rounded-full transition-all duration-700"
-          style={{ width: `${score}%` }}
-        />
-      </div>
     </div>
   )
 
