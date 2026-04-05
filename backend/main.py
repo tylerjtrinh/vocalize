@@ -26,4 +26,4 @@ app.include_router(video_router, prefix="/api/video")
 
 @app.get("/")
 def root():
-    return {"message": "SpeakIQ backend is running"}
+    return {"message": "Vocalize backend is running"}
