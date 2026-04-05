@@ -1,5 +1,11 @@
-google-genai
 fastapi
-uvicorn
-python-dotenv
+uvicorn[standard]
 python-multipart
+python-dotenv
+pydantic
+google-genai
+elevenlabs
+twelvelabs
+httpx
+python-docx
+PyPDF2
