@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Analyze — SmartSpeak</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="container navbar__inner">
+      <a href="index.html" class="navbar__logo">SmartSpeak</a>
+      <div class="navbar__links">
+        <a href="analyze.html" class="navbar__link active">Analyze</a>
+        <a href="results.html" class="navbar__link">Results</a>
+        <a href="exercises.html" class="navbar__link">Exercises</a>
+        <a href="progress.html" class="navbar__link">Progress</a>
+      </div>
+      <a href="analyze.html" class="navbar__cta">Get Analysis</a>
+    </div>
+  </nav>
+
+  <div class="page-header">
+    <div class="container--narrow">
+      <div class="orb-bg">
+        <div class="orb orb--indigo orb--sm"></div>
+        <div class="orb orb--violet orb--sm"></div>
+        <div class="orb orb--rose orb--sm"></div>
+      </div>
+      <div class="page-header__content page-header__row">
+        <div>
+          <h1 class="page-header__title">Upload a video</h1>
+          <p class="page-header__sub">
+            SmartSpeak will analyze your delivery across eight dimensions and generate a personalized report.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <main style="padding: 48px 0 80px;">
+    <div class="container--narrow">
+
+      <div id="error-banner" class="error-banner"></div>
+
+      <!-- Upload zone -->
+      <div id="upload-section">
+        <div
+          id="upload-zone"
+          class="upload-zone"
+          onclick="document.getElementById('file-input').click()"
+          ondragover="onDragOver(event)"
+          ondragleave="onDragLeave(event)"
+          ondrop="onDrop(event)"
+        >
+          <div id="zone-default">
+            <p class="upload-zone__title">Drop your video here</p>
+            <p class="upload-zone__sub">MP4, MOV, or WEBM up to 200 MB</p>
+            <button class="upload-zone__browse" onclick="event.stopPropagation(); document.getElementById('file-input').click()">
+              Browse files
+            </button>
+          </div>
+          <div id="zone-selected" style="display:none;">
+            <p class="upload-zone__filename" id="file-name"></p>
+            <p class="upload-zone__filesize" id="file-size"></p>
+            <button class="upload-zone__remove" onclick="event.stopPropagation(); removeFile()">Remove file</button>
+          </div>
+        </div>
+        <input type="file" id="file-input" accept="video/*" style="display:none;" onchange="onFileSelect(this)" />
+
+        <div style="margin-top:16px; display:none;" id="submit-wrap">
+          <button class="btn btn--primary btn--full" onclick="submitVideo()">Analyze Video</button>
+        </div>
+      </div>
+
+      <!-- Processing state -->
+      <div id="processing" class="processing">
+        <div class="spinner"></div>
+        <p class="processing__step" id="step-label">Uploading video...</p>
+        <p class="processing__sub" id="step-sub">Step 1 of 8 — this takes 1 to 3 minutes</p>
+        <div class="progress-bar">
+          <div class="progress-bar__fill" id="progress-fill" style="width:12%;"></div>
+        </div>
+      </div>
+
+      <!-- What gets analyzed -->
+      <div id="analyze-list-section" style="margin-top:64px; padding-top:48px; border-top:1px solid var(--border);">
+        <p class="label" style="margin-bottom:24px;">What gets analyzed</p>
+        <div class="analyze-list">
+          <div class="analyze-item"><span class="analyze-item__num">01</span><span class="analyze-item__label">Eye contact and gaze</span></div>
+          <div class="analyze-item"><span class="analyze-item__num">02</span><span class="analyze-item__label">Speech pacing</span></div>
+          <div class="analyze-item"><span class="analyze-item__num">03</span><span class="analyze-item__label">Filler word detection</span></div>
+          <div class="analyze-item"><span class="analyze-item__num">04</span><span class="analyze-item__label">Emotional tone</span></div>
+          <div class="analyze-item"><span class="analyze-item__num">05</span><span class="analyze-item__label">Hand gestures</span></div>
+          <div class="analyze-item"><span class="analyze-item__num">06</span><span class="analyze-item__label">Posture</span></div>
+          <div class="analyze-item"><span class="analyze-item__num">07</span><span class="analyze-item__label">Articulation clarity</span></div>
+          <div class="analyze-item"><span class="analyze-item__num">08</span><span class="analyze-item__label">Mouth movement</span></div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script src="api.js"></script>
+  <script>
+    const STEPS = [
+      'Uploading video',
+      'TwelveLabs: analyzing video frames',
+      'Detecting eye contact and gaze patterns',
+      'Analyzing mouth movement and gestures',
+      'Transcribing audio',
+      'Gemini: scoring pacing, tone, and emotion',
+      'ElevenLabs: generating voice example',
+      'Finding content recommendations',
+    ];
+
+    let selectedFile = null;
+    let stepIndex = 0;
+    let stepTimer = null;
+
+    function showError(msg) {
+      const el = document.getElementById('error-banner');
+      el.textContent = msg;
+      el.classList.add('visible');
+    }
+    function hideError() {
+      document.getElementById('error-banner').classList.remove('visible');
+    }
+
+    function onFileSelect(input) {
+      if (input.files[0]) handleFile(input.files[0]);
+    }
+    function onDragOver(e) {
+      e.preventDefault();
+      document.getElementById('upload-zone').classList.add('drag-over');
+    }
+    function onDragLeave() {
+      document.getElementById('upload-zone').classList.remove('drag-over');
+    }
+    function onDrop(e) {
+      e.preventDefault();
+      document.getElementById('upload-zone').classList.remove('drag-over');
+      if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+    }
+
+    function handleFile(file) {
+      hideError();
+      if (!file.type.startsWith('video/')) { showError('Please upload a video file (MP4, MOV, or WEBM).'); return; }
+      if (file.size > 200 * 1024 * 1024) { showError('File must be under 200 MB.'); return; }
+      selectedFile = file;
+      document.getElementById('zone-default').style.display = 'none';
+      document.getElementById('zone-selected').style.display = 'block';
+      document.getElementById('file-name').textContent = file.name;
+      document.getElementById('file-size').textContent = (file.size / (1024 * 1024)).toFixed(1) + ' MB';
+      document.getElementById('upload-zone').classList.add('has-file');
+      document.getElementById('submit-wrap').style.display = 'block';
+    }
+
+    function removeFile() {
+      selectedFile = null;
+      document.getElementById('file-input').value = '';
+      document.getElementById('zone-default').style.display = 'block';
+      document.getElementById('zone-selected').style.display = 'none';
+      document.getElementById('upload-zone').classList.remove('has-file');
+      document.getElementById('submit-wrap').style.display = 'none';
+    }
+
+    function setStep(i) {
+      stepIndex = i;
+      const pct = Math.round(((i + 1) / STEPS.length) * 100);
+      document.getElementById('step-label').textContent = STEPS[i] + '...';
+      document.getElementById('step-sub').textContent = `Step ${i + 1} of ${STEPS.length} — this takes 1 to 3 minutes`;
+      document.getElementById('progress-fill').style.width = pct + '%';
+    }
+
+    async function submitVideo() {
+      if (!selectedFile) return;
+      hideError();
+
+      // Show processing, hide upload
+      document.getElementById('upload-section').style.display = 'none';
+      document.getElementById('analyze-list-section').style.display = 'none';
+      document.getElementById('processing').classList.add('visible');
+      setStep(0);
+
+      // Animate steps while API runs
+      stepTimer = setInterval(() => {
+        if (stepIndex < STEPS.length - 2) setStep(stepIndex + 1);
+      }, 4000);
+
+      try {
+        const result = await analyzeVideo(selectedFile);
+        clearInterval(stepTimer);
+        setStep(STEPS.length - 1);
+        sessionStorage.setItem('smartspeak_result', JSON.stringify(result));
+        setTimeout(() => { window.location.href = 'results.html'; }, 600);
+      } catch (err) {
+        clearInterval(stepTimer);
+        document.getElementById('processing').classList.remove('visible');
+        document.getElementById('upload-section').style.display = 'block';
+        document.getElementById('analyze-list-section').style.display = 'block';
+        showError(err.message || 'Analysis failed. Make sure the backend is running.');
+      }
+    }
+  </script>
+</body>
+</html>
