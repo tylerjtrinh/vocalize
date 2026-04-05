@@ -9,7 +9,7 @@ router = APIRouter()
 
 client = ElevenLabs(api_key=os.getenv("ELEVENLABS_API_KEY"))
 
-VOICE_ID = "JBFqnCBsd6RMkjVDRZzb"  # "George" - warm, coaching voice
+VOICE_ID = "U3TIKdpecikcU5Itm5fn"  # "George" - warm, coaching voice
 
 class SpeakRequest(BaseModel):
     text: str
