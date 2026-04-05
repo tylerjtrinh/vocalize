@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import Navbar from '../components/Navbar'
 
 export default function Practice() {
   const { state } = useLocation()
@@ -106,68 +107,71 @@ export default function Practice() {
     `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
 
   return (
-    <div className="bg-black min-h-screen flex flex-col items-center justify-center px-8">
-      <h1 className="text-white text-3xl font-bold mb-8">🎙️ Free Speak</h1>
+    <div className="bg-black min-h-screen">
+      <Navbar />
+      <div className="flex flex-col items-center justify-center px-8 pt-14 min-h-screen">
+        <h1 className="text-white text-3xl font-bold mb-8">🎙️ Free Speak</h1>
 
-      {loading ? (
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin" />
-          <p className="text-gray-400">Analyzing your speech...</p>
-          <p className="text-gray-600 text-sm">This can take 20-30 seconds</p>
-        </div>
-      ) : (
-        <div className="flex flex-col items-center gap-6 w-full max-w-2xl">
-          {recording && (
-            <div className="text-red-400 font-mono text-2xl animate-pulse">
-              ● {formatTime(elapsed)}
-            </div>
-          )}
+        {loading ? (
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin" />
+            <p className="text-gray-400">Analyzing your speech...</p>
+            <p className="text-gray-600 text-sm">This can take 20-30 seconds</p>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-6 w-full max-w-2xl">
+            {recording && (
+              <div className="text-red-400 font-mono text-2xl animate-pulse">
+                ● {formatTime(elapsed)}
+              </div>
+            )}
 
-          {/* Audio / Video toggle */}
-          {!recording && (
-            <div className="flex items-center bg-gray-900 rounded-full p-1">
-              <button
-                onClick={() => setVideoMode(false)}
-                className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
-                  !videoMode ? 'bg-white text-black' : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                🎙️ Audio Only
-              </button>
-              <button
-                onClick={() => setVideoMode(true)}
-                className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
-                  videoMode ? 'bg-white text-black' : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                🎥 Audio + Video
-              </button>
-            </div>
-          )}
+            {/* Audio / Video toggle */}
+            {!recording && (
+              <div className="flex items-center bg-gray-900 rounded-full p-1">
+                <button
+                  onClick={() => setVideoMode(false)}
+                  className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
+                    !videoMode ? 'bg-white text-black' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  🎙️ Audio Only
+                </button>
+                <button
+                  onClick={() => setVideoMode(true)}
+                  className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
+                    videoMode ? 'bg-white text-black' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  🎥 Audio + Video
+                </button>
+              </div>
+            )}
 
-          <button
-            onClick={recording ? stopRecording : startRecording}
-            className={`w-32 h-32 rounded-full text-5xl transition-all ${
-              recording ? 'bg-red-600 hover:bg-red-700' : 'bg-white hover:bg-gray-200'
-            }`}
-          >
-            {recording ? '⏹' : '🎙️'}
-          </button>
+            <button
+              onClick={recording ? stopRecording : startRecording}
+              className={`w-32 h-32 rounded-full text-5xl transition-all ${
+                recording ? 'bg-red-600 hover:bg-red-700' : 'bg-white hover:bg-gray-200'
+              }`}
+            >
+              {recording ? '⏹' : '🎙️'}
+            </button>
 
-          <p className="text-gray-500">
-            {recording ? 'Click to stop' : 'Click to start recording'}
-          </p>
+            <p className="text-gray-500">
+              {recording ? 'Click to stop' : 'Click to start recording'}
+            </p>
 
-          {(recording || liveText) && (
-            <div className="w-full border border-gray-700 rounded-xl p-6 mt-4 min-h-32">
-              <p className="text-gray-500 text-xs mb-2">Live transcript</p>
-              <p className="text-white leading-relaxed">
-                {liveText || <span className="text-gray-600 italic">Listening...</span>}
-              </p>
-            </div>
-          )}
-        </div>
-      )}
+            {(recording || liveText) && (
+              <div className="w-full border border-gray-700 rounded-xl p-6 mt-4 min-h-32">
+                <p className="text-gray-500 text-xs mb-2">Live transcript</p>
+                <p className="text-white leading-relaxed">
+                  {liveText || <span className="text-gray-600 italic">Listening...</span>}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
