@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import ScoreBar from '../components/ScoreBar'
 import Navbar from '../components/Navbar'
 
+const API = import.meta.env.VITE_API_URL || ''
+
 const getCategory = (score) => {
   if (score >= 90) return { label: 'Excellent', color: 'text-emerald-400' }
   if (score >= 75) return { label: 'Good', color: 'text-blue-400' }
@@ -79,7 +81,7 @@ export default function Results() {
     }
     try {
       setAudioLoading(true)
-      const res = await fetch('/api/speak/', {
+      const res = await fetch(`${API}/api/speak/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: feedback.spoken_feedback }),
@@ -131,7 +133,6 @@ export default function Results() {
         <div className="w-full max-w-3xl">
           <h1 className="text-white text-4xl font-bold mb-8">Your Results</h1>
 
-          {/* Overall score */}
           {feedback && (
             <div className="text-center mb-6">
               <div className="text-white text-8xl font-bold">{feedback.overall_score}</div>
@@ -142,7 +143,6 @@ export default function Results() {
             </div>
           )}
 
-          {/* Play feedback button */}
           {feedback?.spoken_feedback && (
             <div className="flex flex-col items-center mb-8 gap-3">
               <button
@@ -179,7 +179,6 @@ export default function Results() {
             </div>
           )}
 
-          {/* Stats */}
           <div className="grid grid-cols-3 gap-4 mb-8">
             <div className="border border-gray-700 rounded-xl p-4 text-center">
               <div className="text-white text-3xl font-bold">{analysis.wpm}</div>
@@ -195,7 +194,6 @@ export default function Results() {
             </div>
           </div>
 
-          {/* Score breakdown — dropdown */}
           {feedback && (
             <div className="border border-gray-700 rounded-xl mb-6 overflow-hidden">
               <button
@@ -234,7 +232,6 @@ export default function Results() {
             </div>
           )}
 
-          {/* Video Analysis */}
           {isVideoMode && (
             <div className="border border-gray-700 rounded-xl p-6 mb-6">
               <h2 className="text-white text-xl font-semibold mb-4">🎥 Video Analysis</h2>
@@ -273,12 +270,9 @@ export default function Results() {
             </div>
           )}
 
-          {/* Voice Analysis */}
           {voice.tone && (
             <div className="border border-gray-700 rounded-xl p-6 mb-6">
               <h2 className="text-white text-xl font-semibold mb-4">🎙️ Voice Analysis</h2>
-
-              {/* Color coded — breakdown scores with details */}
               <div className="grid grid-cols-2 gap-4 mb-4">
                 {[
                   { label: 'Pacing',     key: 'pacing' },
@@ -298,8 +292,6 @@ export default function Results() {
                   )
                 })}
               </div>
-
-              {/* White descriptive section */}
               <div className="pt-4 border-t border-gray-700">
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <DescField label="Tone"           value={voice.tone?.value}           detail={voice.tone?.detail} />
@@ -310,19 +302,14 @@ export default function Results() {
                   <DescField label="Pauses"         value={`${pauses.usage} (${pauses.count} notable)`} detail={pauses.effectiveness} />
                 </div>
               </div>
-
-              {/* Observations */}
               <div className="pt-4 border-t border-gray-700 mb-4">
                 <p className="text-gray-500 text-xs mb-2">Observations</p>
                 <p className="text-gray-300 leading-relaxed">{voice.observations}</p>
               </div>
-
-              {/* Voice coaching tips */}
               <CoachingTips tips={feedback?.coaching_tips} />
             </div>
           )}
 
-          {/* Filler words */}
           {Object.keys(analysis.filler_words || {}).length > 0 && (
             <div className="border border-gray-700 rounded-xl p-6 mb-6">
               <h2 className="text-white text-xl font-semibold mb-4">🚫 Filler Words</h2>
@@ -337,7 +324,6 @@ export default function Results() {
             </div>
           )}
 
-          {/* Strengths & improvements */}
           {feedback && (
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="border border-gray-700 rounded-xl p-4">
@@ -355,7 +341,6 @@ export default function Results() {
             </div>
           )}
 
-          {/* Coach summary */}
           {feedback?.summary && (
             <div className="border border-gray-700 rounded-xl p-6 mb-6">
               <h2 className="text-white text-xl font-semibold mb-3">Coach Summary</h2>
@@ -363,7 +348,6 @@ export default function Results() {
             </div>
           )}
 
-          {/* Transcript */}
           <div className="border border-gray-700 rounded-xl p-6 mb-8">
             <h2 className="text-white text-xl font-semibold mb-3">Transcript</h2>
             <p className="text-gray-300 leading-relaxed">

@@ -4,6 +4,8 @@ import Navbar from '../components/Navbar'
 import { useAudioRecorder } from '../hooks/useAudioRecorder'
 import { useRecorder } from '../hooks/useRecorder'
 
+const API = import.meta.env.VITE_API_URL || ''
+
 const AUDIO_STAGES = [
   { label: 'Transcribing audio...', progress: 25 },
   { label: 'Analyzing voice...', progress: 55 },
@@ -80,24 +82,20 @@ export default function Practice() {
       const videoFormData = new FormData()
       videoFormData.append('video', blob, 'recording.webm')
 
-      // Stage 0: Transcribing
       const [analysisRes, videoRes] = await Promise.all([
-        fetch('/api/analyze/', { method: 'POST', body: audioFormData }),
-        fetch('/api/video/', { method: 'POST', body: videoFormData }),
+        fetch(`${API}/api/analyze/`, { method: 'POST', body: audioFormData }),
+        fetch(`${API}/api/video/`, { method: 'POST', body: videoFormData }),
       ])
 
-      // Stage 1: Analyzing voice
       advanceStage(1, currentStages)
       const analysis = await analysisRes.json()
       const wpm = Math.round(analysis.word_count / (durationSeconds / 60))
 
-      // Stage 2: Analyzing video
       advanceStage(2, currentStages)
       const videoAnalysis = await videoRes.json()
 
-      // Stage 3: Generating feedback
       advanceStage(3, currentStages)
-      const coachRes = await fetch('/api/coach/feedback', {
+      const coachRes = await fetch(`${API}/api/coach/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -112,7 +110,6 @@ export default function Practice() {
       })
       const feedback = await coachRes.json()
 
-      // Stage 4: Almost done
       advanceStage(4, currentStages)
       setProgress(100)
 
@@ -136,13 +133,12 @@ export default function Practice() {
   }, [navigate])
 
   useEffect(() => {
-  if (recorderState === 'stopped' && videoBlob && loadingRef.current) {
-    const blob = videoBlob
-    setTimeout(() => processVideoRecording(blob), 0)
-  }
+    if (recorderState === 'stopped' && videoBlob && loadingRef.current) {
+      const blob = videoBlob
+      setTimeout(() => processVideoRecording(blob), 0)
+    }
   }, [recorderState, videoBlob, processVideoRecording])
 
-  // ── Audio Only ──
   const handleStartAudio = async () => {
     setLiveText('')
     startLiveTranscription()
@@ -165,14 +161,14 @@ export default function Practice() {
     advanceStage(0, currentStages)
     const formData = new FormData()
     formData.append('audio', blob, 'recording.webm')
-    const res = await fetch('/api/analyze/', { method: 'POST', body: formData })
+    const res = await fetch(`${API}/api/analyze/`, { method: 'POST', body: formData })
     const analysis = await res.json()
     const wpm = Math.round(analysis.word_count / (durationSeconds / 60))
 
     advanceStage(1, currentStages)
-
     advanceStage(2, currentStages)
-    const coachRes = await fetch('/api/coach/feedback', {
+
+    const coachRes = await fetch(`${API}/api/coach/feedback`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -202,7 +198,6 @@ export default function Practice() {
     }, 400)
   }
 
-  // ── Video Mode ──
   const handleVideoModeToggle = (isVideo) => {
     if (isVideo && !consentGiven) {
       setShowConsent(true)
@@ -240,7 +235,6 @@ export default function Practice() {
     <div className="bg-black min-h-screen">
       <Navbar />
 
-      {/* Consent modal */}
       {showConsent && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-8">
           <div className="bg-gray-900 border border-gray-700 rounded-2xl p-8 max-w-md w-full">
@@ -268,14 +262,12 @@ export default function Practice() {
         {loading ? (
           <div className="flex flex-col items-center gap-6 w-full max-w-sm">
             <p className="text-white font-medium text-lg">{stages[loadingStage]?.label}</p>
-
             <div className="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
               <div
                 className="h-2 bg-white rounded-full transition-all duration-700 ease-out"
                 style={{ width: `${progress}%` }}
               />
             </div>
-
             <div className="flex items-center gap-3">
               {stages.map((stage, i) => (
                 <div key={i} className="flex items-center gap-3">
@@ -290,13 +282,10 @@ export default function Practice() {
                 </div>
               ))}
             </div>
-
             <p className="text-gray-500 text-xs">This may take 20-40 seconds</p>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-6 w-full max-w-2xl">
-
-            {/* Toggle */}
             {!recording && !isVideoRecording && (
               <div className="flex items-center bg-gray-900 rounded-full p-1">
                 <button
@@ -318,7 +307,6 @@ export default function Practice() {
               </div>
             )}
 
-            {/* Video preview */}
             {videoMode && (
               <div className="w-full relative rounded-2xl overflow-hidden bg-gray-900 aspect-video border border-gray-700">
                 {(isVideoRecording || recorderState === 'requesting') ? (
@@ -337,14 +325,12 @@ export default function Practice() {
               </div>
             )}
 
-            {/* Audio timer */}
             {recording && (
               <div className="text-red-400 font-mono text-2xl animate-pulse">
                 ● {formatTime(elapsed)}
               </div>
             )}
 
-            {/* Record button */}
             {!videoMode ? (
               <button
                 onClick={recording ? handleStopAudio : handleStartAudio}
@@ -372,7 +358,6 @@ export default function Practice() {
 
             {recorderError && <p className="text-red-400 text-sm">{recorderError}</p>}
 
-            {/* Live transcript */}
             {(recording || isVideoRecording || liveText) && (
               <div className="w-full border border-gray-700 rounded-xl p-6 min-h-32">
                 <p className="text-gray-500 text-xs mb-2">Live transcript</p>
