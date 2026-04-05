@@ -1,6 +1,14 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import ScoreBar from '../components/ScoreBar'
 
+const getCategory = (score) => {
+  if (score >= 90) return { label: 'Excellent', color: 'text-emerald-400' }
+  if (score >= 75) return { label: 'Good', color: 'text-blue-400' }
+  if (score >= 60) return { label: 'Fair', color: 'text-yellow-400' }
+  if (score >= 40) return { label: 'Needs Work', color: 'text-orange-400' }
+  return { label: 'Poor', color: 'text-red-400' }
+}
+
 export default function Results() {
   const { state } = useLocation()
   const navigate = useNavigate()
@@ -17,6 +25,7 @@ export default function Results() {
   const emotion = voice.emotion || {}
   const dynamics = voice.dynamics || {}
   const pauses = voice.pauses || {}
+  const overallCategory = feedback ? getCategory(feedback.overall_score) : null
 
   return (
     <div className="bg-black min-h-screen flex flex-col items-center p-8">
@@ -27,7 +36,10 @@ export default function Results() {
         {feedback && (
           <div className="text-center mb-8">
             <div className="text-white text-8xl font-bold">{feedback.overall_score}</div>
-            <div className="text-gray-400">Overall Score</div>
+            <div className={`text-2xl font-semibold mt-1 ${overallCategory.color}`}>
+              {overallCategory.label}
+            </div>
+            <div className="text-gray-500 text-sm mt-1">Overall Score</div>
           </div>
         )}
 
