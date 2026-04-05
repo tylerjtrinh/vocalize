@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Results — SmartSpeak</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="container navbar__inner">
+      <a href="index.html" class="navbar__logo">SmartSpeak</a>
+      <div class="navbar__links">
+        <a href="analyze.html" class="navbar__link">Analyze</a>
+        <a href="results.html" class="navbar__link active">Results</a>
+        <a href="exercises.html" class="navbar__link">Exercises</a>
+        <a href="progress.html" class="navbar__link">Progress</a>
+      </div>
+      <a href="analyze.html" class="navbar__cta">Get Analysis</a>
+    </div>
+  </nav>
+
+  <div class="page-header">
+    <div class="container">
+      <div class="orb-bg">
+        <div class="orb orb--indigo orb--sm"></div>
+        <div class="orb orb--violet orb--sm"></div>
+        <div class="orb orb--rose orb--sm"></div>
+      </div>
+      <div class="page-header__content page-header__row">
+        <div>
+          <h1 class="page-header__title">Analysis Report</h1>
+          <p class="page-header__sub" id="report-meta">Loading...</p>
+        </div>
+        <a href="exercises.html" class="btn btn--primary">View Exercises</a>
+      </div>
+    </div>
+  </div>
+
+  <main style="padding: 48px 0 80px;">
+    <div class="container">
+
+      <!-- No data state -->
+      <div id="no-data" class="empty-state" style="display:none;">
+        <h2 class="empty-state__title">No analysis yet</h2>
+        <p class="empty-state__desc">Upload a video to generate your report.</p>
+        <a href="analyze.html" class="btn btn--primary">Go to Analyze</a>
+      </div>
+
+      <!-- Results content -->
+      <div id="results-content" style="display:none;">
+
+        <!-- Overall score -->
+        <div class="score-section">
+          <div class="score-ring-wrap">
+            <svg id="score-svg" width="140" height="140" style="transform:rotate(-90deg)">
+              <circle cx="70" cy="70" r="56" fill="none" stroke="#f3f4f6" stroke-width="8"/>
+              <circle id="score-arc" cx="70" cy="70" r="56" fill="none" stroke="#0a0a0a"
+                stroke-width="8" stroke-linecap="round"
+                stroke-dasharray="351.86" stroke-dashoffset="351.86"
+                style="transition: stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1)"/>
+            </svg>
+            <!-- Text centered over SVG -->
+            <div style="position:relative; margin-top:-140px; height:140px; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none;">
+              <span id="score-num" style="font-size:28px; font-weight:700; color:var(--black); line-height:1;">0</span>
+              <span style="font-size:12px; color:var(--gray-400);">/ 100</span>
+            </div>
+            <p class="score-ring-label" style="margin-top:8px;">Overall Score</p>
+          </div>
+          <div class="score-summary">
+            <h2 class="score-summary__title" id="score-headline"></h2>
+            <p class="score-summary__desc" id="score-desc"></p>
+            <div class="score-mini-row" id="score-mini-row"></div>
+          </div>
+        </div>
+
+        <hr class="divider" style="margin: 0;" />
+
+        <!-- Breakdown -->
+        <div style="padding: 48px 0;">
+          <p class="label" style="margin-bottom:32px;">Breakdown</p>
+          <div id="metrics-list"></div>
+        </div>
+
+        <hr class="divider" />
+
+        <!-- Filler words -->
+        <div style="padding: 48px 0;" id="filler-section">
+          <div style="display:flex; align-items:baseline; gap:16px; margin-bottom:24px;">
+            <p class="label">Filler Words</p>
+            <span style="font-size:12px; color:var(--gray-400);" id="filler-total"></span>
+          </div>
+          <div class="filler-grid" id="filler-grid"></div>
+          <div class="transcript-box" id="transcript-box"></div>
+        </div>
+
+        <hr class="divider" />
+
+        <!-- Audio comparison -->
+        <div style="padding: 48px 0;">
+          <p class="label" style="margin-bottom:8px;">Voice Comparison</p>
+          <p style="font-size:13px; color:var(--gray-500); margin-bottom:24px;">
+            Listen to your original recording, then hear ElevenLabs demonstrate ideal pacing and delivery.
+          </p>
+          <div class="audio-grid">
+            <div class="audio-player">
+              <div class="audio-player__header">
+                <div>
+                  <p class="audio-player__badge">Original</p>
+                  <p class="audio-player__title">Your recording</p>
+                </div>
+              </div>
+              <p style="font-size:12px; color:var(--gray-400);">Not available — upload a new video to compare.</p>
+            </div>
+            <div class="audio-player" id="elevenlabs-player">
+              <div class="audio-player__header">
+                <div>
+                  <p class="audio-player__badge">ElevenLabs</p>
+                  <p class="audio-player__title">Ideal delivery</p>
+                </div>
+              </div>
+              <p id="elevenlabs-placeholder" style="font-size:12px; color:var(--gray-400);">Not available.</p>
+              <audio id="elevenlabs-audio" controls style="width:100%; height:36px; display:none;"></audio>
+            </div>
+          </div>
+        </div>
+
+        <hr class="divider" />
+
+        <!-- Recommendations -->
+        <div style="padding: 48px 0;" id="recs-section">
+          <div style="display:flex; align-items:baseline; gap:12px; margin-bottom:24px;">
+            <p class="label">Recommended Viewing</p>
+            <span style="font-size:12px; color:var(--gray-400);">sourced by browser agent</span>
+          </div>
+          <div id="recs-list"></div>
+        </div>
+
+        <hr class="divider" />
+
+        <!-- Footer nav -->
+        <div style="display:flex; align-items:center; justify-content:space-between; padding: 32px 0; flex-wrap:wrap; gap:16px;">
+          <a href="analyze.html" style="font-size:13px; color:var(--gray-400);">Analyze another video</a>
+          <a href="exercises.html" class="btn btn--primary">Go to Exercises</a>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <script src="api.js"></script>
+  <script>
+    const FILLERS = ['um','uh','like','you know','so','basically','right','actually'];
+
+    function scoreLabel(s) {
+      if (s >= 80) return 'Strong';
+      if (s >= 65) return 'Developing';
+      return 'Needs focus';
+    }
+
+    function highlightFillers(text) {
+      return text.replace(/(um|uh|like|you know|so|basically|right|actually)/gi,
+        '<mark>$1</mark>');
+    }
+
+    function buildResults(r) {
+      const apiBase = 'http://localhost:8000'; // matches api.js
+
+      // Meta
+      document.getElementById('report-meta').textContent = 'Analysis ID: ' + r.analysisId.slice(0,8);
+
+      // Score ring animation
+      const circumference = 351.86;
+      const offset = circumference - (r.overallScore / 100) * circumference;
+      document.getElementById('score-num').textContent = r.overallScore;
+      setTimeout(() => {
+        document.getElementById('score-arc').style.strokeDashoffset = offset;
+      }, 100);
+
+      // Headline
+      const hl = r.overallScore >= 80 ? 'Strong performance.'
+        : r.overallScore >= 60 ? 'Good foundation. Clear areas to develop.'
+        : 'Several areas need attention.';
+      document.getElementById('score-headline').textContent = hl;
+
+      if (r.metrics.length > 0) {
+        const best  = r.metrics.reduce((a,b) => a.score > b.score ? a : b);
+        const worst = r.metrics.reduce((a,b) => a.score < b.score ? a : b);
+        document.getElementById('score-desc').textContent =
+          `Your strongest area is ${best.label.toLowerCase()}. Focus on ${worst.label.toLowerCase()} for the biggest improvement.`;
+
+        // Mini scores
+        document.getElementById('score-mini-row').innerHTML = r.metrics.map(m => `
+          <div class="score-mini">
+            <div class="score-mini__val">${m.score}</div>
+            <div class="score-mini__label">${m.label}</div>
+          </div>`).join('');
+
+        // Breakdown rows
+        document.getElementById('metrics-list').innerHTML = r.metrics.map(m => `
+          <div class="metric-row">
+            <div>
+              <div class="metric-name">${m.label}</div>
+              <div class="metric-status">${scoreLabel(m.score)}</div>
+              <div class="metric-bar-wrap">
+                <div class="metric-bar"><div class="metric-bar__fill" style="width:${m.score}%"></div></div>
+                <span class="metric-bar-score">${m.score}</span>
+              </div>
+            </div>
+            <div><p class="metric-feedback">${m.feedback}</p></div>
+            <div class="metric-tip">
+              <p class="metric-tip-label">Tip</p>
+              <p class="metric-tip-text">${m.tip}</p>
+            </div>
+          </div>`).join('');
+      }
+
+      // Filler words
+      if (r.fillerWords && r.fillerWords.length > 0) {
+        const total = r.fillerWords.reduce((a,b) => a + b.count, 0);
+        document.getElementById('filler-total').textContent = total + ' total detected';
+        document.getElementById('filler-grid').innerHTML = r.fillerWords.map(f => `
+          <div class="filler-card">
+            <div class="filler-card__count">${f.count}</div>
+            <div class="filler-card__word">"${f.word}"</div>
+          </div>`).join('');
+        document.getElementById('transcript-box').innerHTML =
+          '<strong style="color:var(--black)">Transcript: </strong>' + highlightFillers(r.transcript);
+      } else {
+        document.getElementById('filler-section').style.display = 'none';
+      }
+
+      // ElevenLabs audio
+      if (r.elevenLabsAudioUrl) {
+        document.getElementById('elevenlabs-placeholder').style.display = 'none';
+        const audio = document.getElementById('elevenlabs-audio');
+        audio.src = apiBase + r.elevenLabsAudioUrl;
+        audio.style.display = 'block';
+      }
+
+      // Recommendations
+      if (r.recommendations && r.recommendations.length > 0) {
+        document.getElementById('recs-list').innerHTML = r.recommendations.map(rec => `
+          <div class="rec-row">
+            <div>
+              <p class="rec-title">${rec.title}</p>
+              <p class="rec-meta">${rec.channel} · Relevant to ${rec.relevance}</p>
+            </div>
+            <a href="${rec.url}" target="_blank" class="rec-link">Watch</a>
+          </div>`).join('');
+      } else {
+        document.getElementById('recs-section').style.display = 'none';
+      }
+
+      document.getElementById('results-content').style.display = 'block';
+    }
+
+    // Load from sessionStorage
+    const stored = sessionStorage.getItem('smartspeak_result');
+    if (stored) {
+      buildResults(JSON.parse(stored));
+    } else {
+      document.getElementById('no-data').style.display = 'block';
+      document.getElementById('report-meta').textContent = 'No analysis loaded';
+    }
+  </script>
+</body>
+</html>
